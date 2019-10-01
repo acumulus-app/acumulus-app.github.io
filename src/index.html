@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <!-- Page description -->
+    <title>acumulus - performance data, visualized.</title>
+  
+    <base href="/">
+  
+    <!-- For "teaching" the browser how to display and present the page -->
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  
+    <!-- Describing the page -->
+    <meta name="description" content="The analytics platform specifically designed to collect and visualize your application's performance metrics.">
+  
+    <!-- For "teaching" the browser how to display and present the page -->
+    <meta name="og:title" content="acumulus - performance data, visualized.">
+    <meta name="og:description" content="The analytics platform specifically designed to collect and visualize your application's performance metrics.">
+  
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="keywords" content="performance, metrics, analytics, visualization, cloud, AWS">
+  
+    <META NAME="geo.placename" CONTENT="Hood River, OR">
+
+    <link href="https://fonts.googleapis.com/css?family=Merriweather:300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.7.2/animate.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wow/1.1.2/wow.js"></script>
+    <script src="http://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+
+    <script>
+        $(function() {
+            new WOW().init();
+        });
+    </script>
+
+    <script>
+        $(function() {
+            var card = $(".codeCard");
+            card.on('mousemove', function(e) {
+                var x = e.clientX - $(this).offset().left + $(window).scrollLeft();
+                var y = e.clientY - $(this).offset().top + $(window).scrollTop();
+
+                var rY = map(x, 0, $(this).width(), -5, 5);
+                var rX = map(y, 0, $(this).height(), -5, 5);
+
+                $(this).children(".image").css("transform", "rotateY(" + rY + "deg)" + " " + "rotateX(" + -rX + "deg)");
+            });
+
+            card.on('mouseenter', function() {
+                $(this).children(".image").css({
+                    transition: "all " + 0.5 + "s" + " linear",
+                });
+            });
+
+            card.on('mouseleave', function() {
+                $(this).children(".image").css({
+                    transition: "all " + 0.5 + "s" + " linear",
+                });
+
+                $(this).children(".image").css("transform", "rotateY(" + 0 + "deg)" + " " + "rotateX(" + 0 + "deg)");
+            });
+
+            function map(x, in_min, in_max, out_min, out_max) {
+                return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <app-root></app-root>
+</body>
+
+<script>
+    Array.prototype.randomElement = function () {
+        return this[Math.floor(Math.random() * this.length)]
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const m = 500
+        const n = 5
+        const k = 30
+        const height = 200
+        const width = window.screen.width;
+
+        colorArray = ["#9977B4", "#DD86BA", "#F498AA", "#F9B48A", "#FECD79", "#FFF68F", "#B7D784", "#82CCB5", "#6ACADE", "#71AADE"]
+
+        function bump(a, n) {
+            const x = 1 / (0.1 + Math.random());
+            const y = 2 * Math.random() - 0.5;
+            const z = 10 / (0.1 + Math.random());
+            for (let i = 0; i < n; ++i) {
+                const w = (i / n - y) * z;
+                a[i] += x * Math.exp(-w * w);
+            }
+        }
+
+        function bumps(n, m) {
+            const a = [];
+            for (let i = 0; i < n; ++i) a[i] = 0;
+            for (let i = 0; i < m; ++i) bump(a, n);
+            return a;
+        };
+        stack = d3.stack()
+            .keys(d3.range(n))
+            .offset(d3["stackOffsetSilhouette"])
+            .order(d3["stackOrderInsideOut"])
+
+        const x = d3.scaleLinear()
+            .domain([0, m - 1])
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .range([height, 0]);
+
+        const z = d3.interpolateCool;
+
+        const area = d3.area()
+            .x((d, i) => x(i))
+            .y0(d => y(d[0]))
+            .y1(d => y(d[1]));
+
+        function randomize() {
+            const layers = stack(d3.transpose(Array.from({
+                length: n
+            }, () => bumps(m, k))));
+            y.domain([
+                d3.min(layers, l => d3.min(l, d => d[0])),
+                d3.max(layers, l => d3.max(l, d => d[1]))
+            ]);
+            return layers;
+        }
+
+        const svg = d3.select('#svg1').attr('width', "100%")
+            .attr('height', m / 2);
+
+        const path = svg.selectAll("path")
+            .data(randomize)
+            .enter().append("path")
+            .attr("d", area)
+            .attr("fill", () => colorArray.randomElement());
+
+        const interval = d3.interval(() => {
+            path
+                .data(randomize)
+                .transition()
+                .duration(1500)
+                .attr("d", area);
+        }, 2500);
+
+    });
+</script>
+
+</html>
